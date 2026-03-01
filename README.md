@@ -1,3 +1,6 @@
+<img width="1536" height="1024" alt="ChatGPT Image Mar 2, 2026, 12_01_25 AM" src="https://github.com/user-attachments/assets/968539e6-afa1-413e-ba6b-5dbe220aca5e" />
+
+
 Gremen is an AI-powered reactive on-chain security dApp built on Somnia that transforms smart contracts into self-defending systems. Instead of relying on manual monitoring or delayed responses, it leverages Somnia’s native Reactivity to detect risky blockchain behavior in real time and autonomously trigger protective actions.
 
 The protocol monitors vault activity such as deposits and withdrawals through push-based event subscriptions. When a transaction occurs, Somnia Reactivity delivers both the emitted event and the exact contract state from the same block directly to the AI engine. This atomic delivery ensures the Guardian analyzes consistent, real-time data without polling or race conditions.

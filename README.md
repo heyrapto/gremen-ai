@@ -1,37 +1,11 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+Gremen is an AI-powered reactive on-chain security dApp built on Somnia that transforms smart contracts into self-defending systems. Instead of relying on manual monitoring or delayed responses, it leverages Somnia’s native Reactivity to detect risky blockchain behavior in real time and autonomously trigger protective actions.
 
-## Getting Started
+The protocol monitors vault activity such as deposits and withdrawals through push-based event subscriptions. When a transaction occurs, Somnia Reactivity delivers both the emitted event and the exact contract state from the same block directly to the AI engine. This atomic delivery ensures the Guardian analyzes consistent, real-time data without polling or race conditions.
 
-First, run the development server:
+When abnormal behavior is detected — such as a sudden liquidity drain, unusually large withdrawal, or rapid transaction burst — the AI computes a dynamic risk score based on liquidity impact, frequency deviation, and behavioral anomalies. If the risk exceeds a defined safety threshold, Gremen immediately activates Safe Mode on the smart contract, temporarily pausing withdrawals and preventing further damage.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+Beyond simple rule-based alerts, Gremen provides transparent AI-generated explanations for every defensive action. The dashboard displays live liquidity levels, risk scores, and contract status, allowing users and developers to clearly understand why the system reacted. This creates trust while maintaining autonomous protection.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+The architecture eliminates inefficient polling systems and external cron jobs by embracing Somnia’s push paradigm. Validators handle event delivery, while the AI layer focuses purely on intelligent decision-making and automated execution. This results in lower latency, reduced complexity, and real-time responsiveness at the protocol level.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
-# gremen-ai
+Gremen redefines on-chain security by combining artificial intelligence with native blockchain reactivity. It demonstrates how decentralized applications can evolve from static logic into adaptive, self-protecting infrastructure. More than a monitoring tool, Gremen is an autonomous guardian layer for DeFi protocols — intelligent, reactive, and built for the next generation of blockchain automation.

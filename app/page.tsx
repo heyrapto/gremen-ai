@@ -1,7 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { RefreshCw, CheckCircle2, XCircle, Loader2, AlertTriangle, ShieldCheck } from "lucide-react";
+import { RefreshCw, CheckCircle2, XCircle, Loader2, AlertTriangle, ShieldCheck, Zap } from "lucide-react";
+import { useWriteContract } from 'wagmi';
+import { parseEther } from 'viem';
+import { VAULT_ABI } from '@/lib/abi';
+
+const VAULT_ADDRESS = (process.env.NEXT_PUBLIC_VAULT_ADDRESS || "0x5FbDB2315678afecb367f032d93F642f64180aa3") as `0x${string}`;
 
 type EventType = {
   id: string;
@@ -21,6 +26,15 @@ type DashboardData = {
 export default function Home() {
   const [data, setData] = useState<DashboardData>({ events: [], currentRiskScore: 0, currentSafeMode: false });
   const [loading, setLoading] = useState(true);
+  const { writeContract, isPending } = useWriteContract();
+
+  const handleDeposit = () => {
+    writeContract({ address: VAULT_ADDRESS, abi: VAULT_ABI, functionName: 'deposit', value: parseEther('5') });
+  };
+
+  const handleWithdraw = (amount: string) => {
+    writeContract({ address: VAULT_ADDRESS, abi: VAULT_ABI, functionName: 'withdraw', args: [parseEther(amount)] });
+  };
 
   const fetchData = async () => {
     try {
@@ -60,13 +74,25 @@ export default function Home() {
             Monitor ReactiveVault execution and risk anomalies in real-time
           </p>
         </div>
-        <button
-          onClick={fetchData}
-          className="flex items-center gap-2 px-4 py-2 bg-[#1a1a1a] border border-[#222] hover:bg-[#222] hover:border-[#333] transition rounded-lg text-sm font-medium text-zinc-300"
-        >
-          <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
-          Refresh
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={() => handleDeposit()} disabled={isPending} className="flex items-center gap-2 px-4 py-2 bg-emerald-500 text-black font-bold text-sm rounded-lg hover:bg-emerald-400 transition ml-4 disabled:opacity-50">
+            <Zap className="w-4 h-4" /> Deposit 5 ETH
+          </button>
+          <button onClick={() => handleWithdraw("0.5")} disabled={isPending} className="px-4 py-2 bg-[#1a1a1a] text-zinc-300 font-bold text-sm rounded-lg border border-[#222] hover:bg-[#222] transition disabled:opacity-50">
+            Withdraw 0.5 ETH
+          </button>
+          <button onClick={() => handleWithdraw("3")} disabled={isPending} className="px-4 py-2 bg-red-500/10 text-red-500 font-bold text-sm rounded-lg border border-red-500/20 hover:bg-red-500/20 transition disabled:opacity-50">
+            Attack (Withdraw 3 ETH)
+          </button>
+
+          <button
+            onClick={fetchData}
+            title="Refresh Events"
+            className="flex items-center justify-center w-10 h-10 bg-[#1a1a1a] border border-[#222] hover:bg-[#222] hover:border-[#333] transition rounded-lg text-zinc-300 ml-2"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+          </button>
+        </div>
       </div>
 
       {/* Stats Cards */}

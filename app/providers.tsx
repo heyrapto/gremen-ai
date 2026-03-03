@@ -14,18 +14,22 @@ import {
     QueryClientProvider,
     QueryClient,
 } from "@tanstack/react-query";
-import { ReactNode } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
 
 const config = getDefaultConfig({
     appName: 'On-Chain Guardian',
     projectId: '6728047f0b87fe9ed5ba240bbac31c3d',
     chains: [localhost],
-    ssr: true,
+    ssr: false,
 });
+
 
 const queryClient = new QueryClient();
 
 export function Providers({ children }: { children: ReactNode }) {
+    const [mounted, setMounted] = useState(false);
+    useEffect(() => setMounted(true), []);
+
     return (
         <WagmiProvider config={config}>
             <QueryClientProvider client={queryClient}>
@@ -38,7 +42,7 @@ export function Providers({ children }: { children: ReactNode }) {
                         overlayBlur: 'small',
                     })}
                 >
-                    {children}
+                    {mounted && children}
                 </RainbowKitProvider>
             </QueryClientProvider>
         </WagmiProvider>

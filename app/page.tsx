@@ -65,7 +65,7 @@ export default function Home() {
   return (
     <div className="flex-1 p-8 overflow-y-auto relative z-10 w-full max-w-6xl mx-auto h-full flex flex-col">
       {/* Header */}
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex justify-between items-start mb-8">
         <div>
           <h2 className="text-3xl font-display text-white uppercase tracking-wider mb-1">
             VAULT RUNS
@@ -75,20 +75,20 @@ export default function Home() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={() => handleDeposit()} disabled={isPending} className="flex items-center gap-2 px-4 py-2 bg-emerald-500 text-black font-bold text-sm rounded-lg hover:bg-emerald-400 transition ml-4 disabled:opacity-50">
-            <Zap className="w-4 h-4" /> Deposit 5 ETH
+          <button onClick={() => handleDeposit()} disabled={isPending} className="flex items-center gap-2 px-2 py-2 bg-emerald-500 text-black font-bold text-sm rounded-lg hover:bg-emerald-400 transition ml-4 disabled:opacity-50 cursor-pointer">
+            <Zap className="w-4 h-4" /> Deposit 5 STT
           </button>
-          <button onClick={() => handleWithdraw("0.5")} disabled={isPending} className="px-4 py-2 bg-[#1a1a1a] text-zinc-300 font-bold text-sm rounded-lg border border-[#222] hover:bg-[#222] transition disabled:opacity-50">
-            Withdraw 0.5 ETH
+          <button onClick={() => handleWithdraw("0.5")} disabled={isPending} className="px-2 py-2 bg-[#1a1a1a] text-zinc-300 font-bold text-sm rounded-lg border border-[#222] hover:bg-[#222] transition disabled:opacity-50 cursor-pointer">
+            Withdraw 0.5 STT
           </button>
-          <button onClick={() => handleWithdraw("3")} disabled={isPending} className="px-4 py-2 bg-red-500/10 text-red-500 font-bold text-sm rounded-lg border border-red-500/20 hover:bg-red-500/20 transition disabled:opacity-50">
-            Attack (Withdraw 3 ETH)
+          <button onClick={() => handleWithdraw("3")} disabled={isPending} className="px-2 py-2 bg-red-500/10 text-red-500 font-bold text-sm rounded-lg border border-red-500/20 hover:bg-red-500/20 transition disabled:opacity-50 cursor-pointer">
+            Attack (Withdraw 3 STT)
           </button>
 
           <button
             onClick={fetchData}
             title="Refresh Events"
-            className="flex items-center justify-center w-10 h-10 bg-[#1a1a1a] border border-[#222] hover:bg-[#222] hover:border-[#333] transition rounded-lg text-zinc-300 ml-2"
+            className="flex items-center justify-center w-10 h-10 bg-[#1a1a1a] border border-[#222] hover:bg-[#222] hover:border-[#333] transition rounded-lg text-zinc-300 ml-2 cursor-pointer"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
           </button>

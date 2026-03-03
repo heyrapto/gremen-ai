@@ -11,7 +11,7 @@ export function Sidebar() {
     return (
         <aside className="w-64 border-r border-[#1a1a1a] flex flex-col h-full bg-[#0d0d0d] font-sans">
             <div className="p-6 border-b border-[#1a1a1a]">
-                <h1 className="text-2xl font-grotesk tracking-tight text-white uppercase font-bold">Gremen AI</h1>
+                <h1 className="text-2xl font-bold tracking-tight text-white uppercase">Gremen AI</h1>
             </div>
 
             <div className="p-4">

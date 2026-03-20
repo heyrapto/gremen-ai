@@ -12,6 +12,15 @@ export const VAULT_ABI = [
     {
         "anonymous": false,
         "inputs": [
+            { "indexed": true, "internalType": "address", "name": "user", "type": "address" },
+            { "indexed": false, "internalType": "uint256", "name": "amount", "type": "uint256" }
+        ],
+        "name": "Deposit",
+        "type": "event"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
             { "indexed": false, "internalType": "uint256", "name": "riskScore", "type": "uint256" }
         ],
         "name": "SafeModeActivated",

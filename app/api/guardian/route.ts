@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createPublicClient, createWalletClient, http, defineChain, parseEther } from 'viem';
+import { createPublicClient, createWalletClient, http, defineChain, parseEther, encodeFunctionData, decodeEventLog } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { SDK } from '@somnia-chain/reactivity';
 import { VAULT_ABI } from '@/lib/abi';
 import { calculateRisk } from '@/lib/riskEngine';
 
-// Global scope to hold the SDK instance in dev/prod Serverless
+// Global scope for dev persistence
 declare global {
     var guardianSubscribed: boolean;
 }
@@ -21,11 +21,15 @@ const chain = defineChain({
     name: 'Localhost',
     network: 'localhost',
     nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
-    rpcUrls: { default: { http: ['http://127.0.0.1:8545'] } },
+    rpcUrls: { 
+        default: { 
+            http: ['http://127.0.0.1:8545'],
+            webSocket: ['ws://127.0.0.1:8545']
+        } 
+    },
 });
 
 const VAULT_ADDRESS = process.env.NEXT_PUBLIC_VAULT_ADDRESS as `0x${string}`;
-// Anvil Account #0 private key default for the Guardian bot
 const GUARDIAN_PK = process.env.GUARDIAN_PRIVATE_KEY as `0x${string}` || '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
 
 const account = privateKeyToAccount(GUARDIAN_PK);
@@ -33,25 +37,39 @@ const account = privateKeyToAccount(GUARDIAN_PK);
 const publicClient = createPublicClient({ chain, transport: http() });
 const walletClient = createWalletClient({ account, chain, transport: http() });
 
-const sdk = new SDK({
-    public: publicClient as any,
-    wallet: walletClient as any,
-});
-
 async function handleEvent(data: any) {
-    const event = data.event;
-    // Fallbacks if data fails locally
-    const totalLiquidity = data.ethCallResults?.[0] ? Number(data.ethCallResults[0]) : 0;
-    const isSafeMode = data.ethCallResults?.[1] ? Boolean(data.ethCallResults[1]) : false;
+    if (!data.result) return;
+    
+    const { topics, data: logData, simulationResults } = data.result;
+
+    // Decode the event using the ABI
+    let eventName: string = "";
+    let eventArgs: any = {};
+
+    try {
+        const decoded = decodeEventLog({
+            abi: VAULT_ABI as any,
+            data: logData,
+            topics: topics,
+        }) as any;
+        eventName = decoded.eventName;
+        eventArgs = decoded.args;
+        console.log(`[Guardian] handleEvent triggered for ${eventName}`);
+    } catch (e) {
+        console.error("[Guardian] Failed to decode event log", e);
+        return;
+    }
+
+    const totalLiquidity = simulationResults?.[0] ? BigInt(simulationResults[0]) : BigInt(0);
+    const isSafeMode = simulationResults?.[1] ? Number(simulationResults[1]) === 1 : false;
 
     currentSafeMode = isSafeMode;
 
-    if (event.name !== "Withdraw") {
-        // Just log deposit
+    if (eventName !== "Withdraw") {
         recentEvents.unshift({
             id: Math.random().toString(),
-            type: "Deposit",
-            amount: Number(event.args.amount) / 1e18,
+            type: eventName,
+            amount: eventArgs.amount ? Number(eventArgs.amount) / 1e18 : 0,
             risk: 0,
             timestamp: new Date().toISOString(),
             status: "success"
@@ -59,9 +77,9 @@ async function handleEvent(data: any) {
         return;
     }
 
-    const amountStr = event.args.amount ? Number(event.args.amount) : 0;
+    const amountStr = eventArgs.amount ? Number(eventArgs.amount) : 0;
     const decodedAmount = amountStr / 1e18;
-    const decodedLiquidity = totalLiquidity / 1e18;
+    const decodedLiquidity = Number(totalLiquidity) / 1e18;
 
     const riskScore = calculateRisk(decodedAmount, decodedLiquidity);
     currentRiskScore = riskScore;
@@ -95,45 +113,52 @@ async function handleEvent(data: any) {
 }
 
 async function startSubscription() {
-    if (global.guardianSubscribed) return;
-
-    if (!VAULT_ADDRESS) {
-        console.error("[Guardian] Missing VAULT_ADDRESS. Guardian skip block.");
-        return;
-    }
-
-    console.log("[Guardian] Initializing Reactivity Subscription...");
-
-    const initParams = {
-        ethCalls: [
-            {
-                address: VAULT_ADDRESS,
-                abi: VAULT_ABI, // Using strictly typed ABI 
-                functionName: 'totalLiquidity',
-            },
-            {
-                address: VAULT_ADDRESS,
-                abi: VAULT_ABI,
-                functionName: 'safeMode',
-            }
-        ],
-        onData: async (data: any) => {
-            await handleEvent(data);
-        },
-    };
+    console.log(`[Guardian] Initializing Reactivity Subscription (Anvil Fallback) for ${VAULT_ADDRESS}...`);
 
     try {
-        // Wait for subscription to establish successfully
-        await sdk.subscribe(initParams as any);
+        publicClient.watchContractEvent({
+            address: VAULT_ADDRESS,
+            abi: VAULT_ABI,
+            onLogs: async (logs) => {
+                for (const logItem of logs) {
+                    console.log(`[Guardian] New Log detected: ${logItem.eventName}`);
+                    
+                    const [totalLiquidity, safeMode] = await Promise.all([
+                        publicClient.readContract({
+                            address: VAULT_ADDRESS,
+                            abi: VAULT_ABI,
+                            functionName: 'totalLiquidity',
+                        }),
+                        publicClient.readContract({
+                            address: VAULT_ADDRESS,
+                            abi: VAULT_ABI,
+                            functionName: 'safeMode',
+                        })
+                    ]);
+
+                    const data = {
+                        result: {
+                            topics: logItem.topics,
+                            data: logItem.data,
+                            simulationResults: [
+                                totalLiquidity.toString(),
+                                safeMode ? "1" : "0"
+                            ]
+                        }
+                    };
+                    await handleEvent(data);
+                }
+            }
+        });
+
         global.guardianSubscribed = true;
-        console.log("[Guardian] Subscribed successfully to Reactivity.");
-    } catch (e) {
-        console.error("[Guardian] Reactivity err", e);
+        console.log("[Guardian] Subscription set up. Watching for events...");
+    } catch (e: any) {
+        console.error(`[Guardian] Subscription setup failed: ${e.message}`);
     }
 }
 
 export async function GET(req: NextRequest) {
-    // Check parameter
     const searchParams = req.nextUrl.searchParams;
     const action = searchParams.get('action');
 
@@ -142,7 +167,6 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ success: true, message: "Subscription verified running" });
     }
 
-    // default poll logic for frontend
     return NextResponse.json({
         events: recentEvents.slice(0, 10),
         currentRiskScore,

@@ -4,9 +4,46 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Activity } from "lucide-react";
 import { ConnectButton } from '@rainbow-me/rainbowkit';
+import { useEffect, useState } from "react";
+
+type EventType = {
+    id: string;
+    type: string;
+    amount: number;
+    risk: number;
+    timestamp: string;
+    status: "success" | "failed";
+};
+
+type DashboardData = {
+    events: EventType[];
+    currentRiskScore: number;
+    currentSafeMode: boolean;
+};
 
 export function Sidebar() {
     const pathname = usePathname();
+    const [data, setData] = useState<DashboardData>({ events: [], currentRiskScore: 0, currentSafeMode: false });
+
+    const fetchData = async () => {
+        try {
+            const fetchRes = await fetch("/api/guardian");
+            const result = await fetchRes.json();
+            setData(result);
+        } catch (e) {
+            console.error(e);
+        }
+    };
+
+    useEffect(() => {
+        // Start backend subscription
+        fetch("/api/guardian?action=start").catch(console.error);
+
+        // Poll for frontend updates
+        fetchData();
+        const interval = setInterval(fetchData, 2000);
+        return () => clearInterval(interval);
+    }, []);
 
     return (
         <aside className="w-64 border-r border-[#1a1a1a] flex flex-col h-full bg-[#0d0d0d] font-sans">
@@ -29,7 +66,7 @@ export function Sidebar() {
                     <Link href="/" className="flex items-center gap-3 px-3 py-2 text-emerald-400 bg-emerald-500/5 border border-emerald-500/10 rounded-md transition text-sm font-medium">
                         <Activity className="w-4 h-4" />
                         Vault Runs
-                        <span className="ml-auto text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full font-mono">12</span>
+                        <span className="ml-auto text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full font-mono">{data.events.length}</span>
                     </Link>
                 </nav>
             </div>

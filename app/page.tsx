@@ -26,14 +26,34 @@ type DashboardData = {
 export default function Home() {
   const [data, setData] = useState<DashboardData>({ events: [], currentRiskScore: 0, currentSafeMode: false });
   const [loading, setLoading] = useState(true);
-  const { writeContract, isPending } = useWriteContract();
+  const { writeContractAsync, isPending } = useWriteContract();
 
-  const handleDeposit = () => {
-    writeContract({ address: VAULT_ADDRESS, abi: VAULT_ABI, functionName: 'deposit', value: parseEther('5') });
+  const handleDeposit = async () => {
+    try {
+      await writeContractAsync({
+        address: VAULT_ADDRESS,
+        abi: VAULT_ABI,
+        functionName: 'deposit',
+        value: parseEther('5')
+      });
+    } catch (err: any) {
+      console.error("Deposit failed:", err);
+      alert(`Deposit failed: ${err.shortMessage || err.message || "Unknown error"}`);
+    }
   };
 
-  const handleWithdraw = (amount: string) => {
-    writeContract({ address: VAULT_ADDRESS, abi: VAULT_ABI, functionName: 'withdraw', args: [parseEther(amount)] });
+  const handleWithdraw = async (amount: string) => {
+    try {
+      await writeContractAsync({
+        address: VAULT_ADDRESS,
+        abi: VAULT_ABI,
+        functionName: 'withdraw',
+        args: [parseEther(amount)]
+      });
+    } catch (err: any) {
+      console.error("Withdraw failed:", err);
+      alert(`Withdraw failed: ${err.shortMessage || err.message || "Unknown error"}`);
+    }
   };
 
   const fetchData = async () => {
@@ -76,11 +96,11 @@ export default function Home() {
         </div>
         <div className="flex items-center gap-2">
           <button onClick={() => handleDeposit()} disabled={isPending} className="flex items-center gap-2 px-2 py-2 bg-emerald-500 text-black font-bold text-sm rounded-lg hover:bg-emerald-400 transition ml-4 disabled:opacity-50 cursor-pointer">
-            <Zap className="w-4 h-4" /> Deposit 5 STT
+            <Zap className="w-4 h-4" /> Deposit 1 STT
           </button>
-          <button onClick={() => handleWithdraw("0.5")} disabled={isPending} className="px-2 py-2 bg-[#1a1a1a] text-zinc-300 font-bold text-sm rounded-lg border border-[#222] hover:bg-[#222] transition disabled:opacity-50 cursor-pointer">
+          {/* <button onClick={() => handleWithdraw("0.5")} disabled={isPending} className="px-2 py-2 bg-[#1a1a1a] text-zinc-300 font-bold text-sm rounded-lg border border-[#222] hover:bg-[#222] transition disabled:opacity-50 cursor-pointer">
             Withdraw 0.5 STT
-          </button>
+          </button> */}
           <button onClick={() => handleWithdraw("3")} disabled={isPending} className="px-2 py-2 bg-red-500/10 text-red-500 font-bold text-sm rounded-lg border border-red-500/20 hover:bg-red-500/20 transition disabled:opacity-50 cursor-pointer">
             Attack (Withdraw 3 STT)
           </button>
@@ -188,7 +208,7 @@ export default function Home() {
                 </div>
 
                 <div className="text-right text-sm font-mono text-zinc-300 w-24">
-                  {event.amount.toFixed(2)} ETH
+                  {event.amount.toFixed(2)} STT
                 </div>
 
                 <div className="text-right w-24">

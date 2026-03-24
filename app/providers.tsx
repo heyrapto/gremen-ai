@@ -16,13 +16,26 @@ import {
 } from "@tanstack/react-query";
 import { ReactNode, useEffect, useState } from 'react';
 
+const anvil = {
+    id: 31337,
+    name: 'Anvil',
+    network: 'anvil',
+    nativeCurrency: {
+        name: 'Ether',
+        symbol: 'ETH',
+        decimals: 18,
+    },
+    rpcUrls: {
+        default: { http: ['http://127.0.0.1:8545'] },
+    },
+};
+
 const config = getDefaultConfig({
     appName: 'On-Chain Guardian',
     projectId: '6728047f0b87fe9ed5ba240bbac31c3d',
-    chains: [localhost],
+    chains: [anvil],
     ssr: false,
 });
-
 
 const queryClient = new QueryClient();
 

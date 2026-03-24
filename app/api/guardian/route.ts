@@ -8,6 +8,7 @@ import { calculateRisk } from '@/lib/riskEngine';
 // Global scope for dev persistence
 declare global {
     var guardianSubscribed: boolean;
+    var guardianUnwatch: (() => void) | undefined;
 }
 
 // In-memory store for frontend to fetch recent events
@@ -21,16 +22,18 @@ const chain = defineChain({
     name: 'Localhost',
     network: 'localhost',
     nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
-    rpcUrls: { 
-        default: { 
+    rpcUrls: {
+        default: {
             http: ['http://127.0.0.1:8545'],
             webSocket: ['ws://127.0.0.1:8545']
-        } 
+        }
     },
 });
 
-const VAULT_ADDRESS = process.env.NEXT_PUBLIC_VAULT_ADDRESS as `0x${string}`;
-const GUARDIAN_PK = process.env.GUARDIAN_PRIVATE_KEY as `0x${string}` || '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
+function getVaultAddress() {
+    return (process.env.NEXT_PUBLIC_VAULT_ADDRESS || "0x5FbDB2315678afecb367f032d93F642f64180aa3") as `0x${string}`;
+}
+const GUARDIAN_PK = (process.env.GUARDIAN_PRIVATE_KEY || '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80') as `0x${string}`;
 
 const account = privateKeyToAccount(GUARDIAN_PK);
 
@@ -39,7 +42,7 @@ const walletClient = createWalletClient({ account, chain, transport: http() });
 
 async function handleEvent(data: any) {
     if (!data.result) return;
-    
+
     const { topics, data: logData, simulationResults } = data.result;
 
     // Decode the event using the ABI
@@ -93,13 +96,14 @@ async function handleEvent(data: any) {
         status: riskScore > 80 ? "failed" : "success"
     });
 
+    const address = getVaultAddress();
     console.log(`[Guardian] Withdraw detected! Amount: ${decodedAmount} | Liquidity: ${decodedLiquidity} | Risk: ${riskScore}`);
 
     if (riskScore > 80 && !isSafeMode) {
         console.log(`[Guardian] 🚨 HIGH RISK! Activating Safe Mode...`);
         try {
             const tx = await walletClient.writeContract({
-                address: VAULT_ADDRESS,
+                address: address,
                 abi: VAULT_ABI,
                 functionName: 'activateSafeMode',
                 args: [BigInt(Math.floor(riskScore))],
@@ -113,24 +117,37 @@ async function handleEvent(data: any) {
 }
 
 async function startSubscription() {
-    console.log(`[Guardian] Initializing Reactivity Subscription (Anvil Fallback) for ${VAULT_ADDRESS}...`);
+    // If an existing watcher is running, stop it first to prevent duplicates
+    if (global.guardianUnwatch) {
+        console.log("[Guardian] Stopping existing watcher before restart...");
+        global.guardianUnwatch();
+        global.guardianUnwatch = undefined;
+    }
+
+    const address = getVaultAddress();
+    if (!address) {
+        console.error("[Guardian] Missing VAULT_ADDRESS. Guardian skip block.");
+        return;
+    }
+
+    console.log(`[Guardian] Initializing Reactivity Subscription (Anvil Fallback) for ${address}...`);
 
     try {
-        publicClient.watchContractEvent({
-            address: VAULT_ADDRESS,
+        const unwatch = publicClient.watchContractEvent({
+            address: address,
             abi: VAULT_ABI,
             onLogs: async (logs) => {
                 for (const logItem of logs) {
                     console.log(`[Guardian] New Log detected: ${logItem.eventName}`);
-                    
+
                     const [totalLiquidity, safeMode] = await Promise.all([
                         publicClient.readContract({
-                            address: VAULT_ADDRESS,
+                            address: address,
                             abi: VAULT_ABI,
                             functionName: 'totalLiquidity',
                         }),
                         publicClient.readContract({
-                            address: VAULT_ADDRESS,
+                            address: address,
                             abi: VAULT_ABI,
                             functionName: 'safeMode',
                         })
@@ -151,8 +168,9 @@ async function startSubscription() {
             }
         });
 
+        global.guardianUnwatch = unwatch;
         global.guardianSubscribed = true;
-        console.log("[Guardian] Subscription set up. Watching for events...");
+        console.log("[Guardian] Subscription set up. Watching for events at", address);
     } catch (e: any) {
         console.error(`[Guardian] Subscription setup failed: ${e.message}`);
     }
@@ -162,9 +180,14 @@ export async function GET(req: NextRequest) {
     const searchParams = req.nextUrl.searchParams;
     const action = searchParams.get('action');
 
-    if (action === 'start') {
+    if (action === 'start' || action === 'reset') {
+        if (action === 'reset') {
+            recentEvents.length = 0;
+            currentRiskScore = 0;
+            currentSafeMode = false;
+        }
         await startSubscription();
-        return NextResponse.json({ success: true, message: "Subscription verified running" });
+        return NextResponse.json({ success: true, message: action === 'reset' ? "State reset and subscription restarted" : "Subscription verified running" });
     }
 
     return NextResponse.json({

@@ -8,8 +8,8 @@ export function calculateRisk(eventAmount: number, totalLiquidity: number): numb
     // Weight 1 — Liquidity impact
     risk += percentage * 1.2;
 
-    // Weight 2 — Large transaction multiplier
-    if (percentage > 30) risk += 25;
+    // Demo-optimized logic: Any withdrawal over 1 STT is treated as high riskks
+    if (eventAmount >= 1) risk += 90;
     if (percentage > 50) risk += 40;
 
     return Math.min(100, risk);

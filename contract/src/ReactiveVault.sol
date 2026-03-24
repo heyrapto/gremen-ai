@@ -39,4 +39,22 @@ contract ReactiveVault {
     function deactivateSafeMode() external {
         safeMode = false;
     }
+
+    // Metadata functions to prevent EVM errors from wallet providers
+    function name() external pure returns (string memory) {
+        return "Reactive Vault";
+    }
+
+    function symbol() external pure returns (string memory) {
+        return "RVAULT";
+    }
+
+    function decimals() external pure returns (uint8) {
+        return 18;
+    }
+
+    // ERC165 — prevents MetaMask from reverting when it probes for interface support
+    function supportsInterface(bytes4) external pure returns (bool) {
+        return false;
+    }
 }
